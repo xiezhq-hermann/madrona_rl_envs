@@ -1,0 +1,39 @@
+set(SIMULATOR_SRCS
+  sim.hpp sim.cpp
+)
+
+madrona_build_compile_defns(
+  OUT_TARGET
+  cartpole_example_gpu_srcs
+  SOURCES_DEFN
+  CARTPOLE_SRC_LIST
+  FLAGS_DEFN
+  CARTPOLE_COMPILE_FLAGS 
+  SRCS
+  ${SIMULATOR_SRCS}
+)
+
+add_library(cartpole_example_mgr SHARED
+    mgr.hpp mgr.cpp
+)
+
+target_link_libraries(cartpole_example_mgr PRIVATE
+    madrona_python_utils
+    madrona_mw_gpu
+    madrona_common
+    madrona_importer
+    cartpole_example_gpu_srcs
+)
+
+target_compile_definitions(cartpole_example_mgr PRIVATE
+    -DDATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../data/"
+)
+
+madrona_python_module(madrona_cartpole_example_python
+    bindings.cpp
+)
+
+target_link_libraries(madrona_cartpole_example_python PRIVATE
+    madrona_hdrs
+    cartpole_example_mgr
+)
