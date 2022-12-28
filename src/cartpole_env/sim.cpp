@@ -39,6 +39,7 @@ void Sim::registerTypes(ECSRegistry &registry)
     registry.exportColumn<Agent, Action>(1);
     registry.exportColumn<Agent, State>(2);
     registry.exportColumn<Agent, Reward>(3);
+    registry.exportColumn<Agent, WorldID>(4);
 }
 
 static void resetWorld(Engine &ctx)
@@ -119,10 +120,10 @@ void Sim::setupTasks(TaskGraph::Builder &builder)
     // auto reset_sys =
     //     builder.parallelForNode<Engine, resetSystem, WorldReset>({});
 
-    auto action_sys = builder.parallelForNode<Engine, actionSystem,
-                                              Action, State, Reward>({});
+    auto action_sys = builder.addToGraph<ParallelForNode<Engine, actionSystem,
+                                                     Action, State, Reward>>({});
 
-    auto terminate_sys = builder.parallelForNode<Engine, checkDone, WorldReset>({action_sys});
+    auto terminate_sys = builder.addToGraph<ParallelForNode<Engine, checkDone, WorldReset>>({action_sys});
 
     (void)terminate_sys;
     // (void) action_sys;

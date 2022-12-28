@@ -48,7 +48,7 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
         .worldDataAlignment = alignof(Sim),
         .numWorlds = cfg.numWorlds,
         // Increase this number before exporting more tensors
-        .numExportedBuffers = 4, 
+        .numExportedBuffers = 5, 
         .gpuID = (uint32_t)cfg.gpuID,
         .renderWidth = 0,
         .renderHeight = 0,
@@ -108,6 +108,14 @@ MADRONA_EXPORT GPUTensor Manager::rewardTensor() const
     void *dev_ptr = impl_->mwGPU.getExported(3);
 
     return GPUTensor(dev_ptr, GPUTensor::ElementType::Float32,
+                     {impl_->cfg.numWorlds, 1, 1}, impl_->cfg.gpuID);
+}
+
+MADRONA_EXPORT GPUTensor Manager::worldIDTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(4);
+
+    return GPUTensor(dev_ptr, GPUTensor::ElementType::Int32,
                      {impl_->cfg.numWorlds, 1, 1}, impl_->cfg.gpuID);
 }
 

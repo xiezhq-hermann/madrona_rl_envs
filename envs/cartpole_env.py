@@ -53,13 +53,23 @@ class CartpoleMadronaNumpy(VectorEnv):
         self.static_states = self.sim.state_tensor().to_torch()
         self.static_rewards = self.sim.reward_tensor().to_torch()
 
+        self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)[:, 0, :]
+
+        self.static_gathers = self.static_dones.detach().clone()
+
+        self.infos = [{}] * self.num_envs
+
+        
+
     def step(self, actions):
         actions = actions[:, np.newaxis, np.newaxis]
         self.static_actions.copy_(torch.from_numpy(actions))
 
         self.sim.step()
 
-        return to_np(self.static_states), to_np(self.static_rewards), to_np(self.static_dones), [{}] * self.num_envs
+        torch.gather(self.static_dones, 0, self.static_worldID, out=self.static_gathers)
+
+        return to_np(self.static_states), to_np(self.static_rewards), to_np(self.static_gathers), [{}] * self.num_envs
 
     def reset(self):
         return to_np(self.static_states)
@@ -94,14 +104,22 @@ class CartpoleMadronaTorch(VectorEnv):
         self.static_states = self.sim.state_tensor().to_torch()
         self.static_rewards = self.sim.reward_tensor().to_torch()
 
+        self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)[:, 0, :]
+        print(self.sim.world_id_tensor().to_torch())
+
+        self.static_gathers = self.static_dones.detach().clone()
+
         self.infos = [{}] * self.num_envs
 
     def step(self, actions):
         self.static_actions.copy_(actions[:, None, None])
-
+        
         self.sim.step()
 
-        return to_torch(self.static_states), to_torch(self.static_rewards), to_torch(self.static_dones), self.infos
+        # print(self.static_worldID)
+        torch.gather(self.static_dones, 0, self.static_worldID, out=self.static_gathers)
+
+        return to_torch(self.static_states), to_torch(self.static_rewards), to_torch(self.static_gathers), self.infos
 
     def reset(self):
         return to_torch(self.static_states)

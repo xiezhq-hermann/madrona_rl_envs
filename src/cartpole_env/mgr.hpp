@@ -24,6 +24,9 @@ public:
     MADRONA_IMPORT madrona::py::GPUTensor stateTensor() const; // Vec4 Float32
     MADRONA_IMPORT madrona::py::GPUTensor rewardTensor() const; // Float32
 
+    MADRONA_IMPORT madrona::py::GPUTensor worldIDTensor() const; // Float32
+
+
 private:
     struct Impl;
 

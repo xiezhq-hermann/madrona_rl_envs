@@ -13,18 +13,22 @@ parser.add_argument("--verbose", type=lambda x: bool(strtobool(x)), default=Fals
         help="if toggled, enable assertions to validate correctness")
 parser.add_argument("--asserts", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, enable assertions to validate correctness")
+
+parser.add_argument("--validation", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="if toggled, validate correctness")
 args = parser.parse_args()
 
 env = CartpoleMadronaTorch(args.num_envs, 0)
 old_state = env.reset()
 actions = env.static_actions[:, 0, 0]
 num_errors = 0
+start_time = time.time()
 for iter in range(args.num_steps):
     action = torch.randint_like(actions, high=2)
 
     next_state, reward, next_done, _ = env.step(action)
 
-    if not validate_step(old_state, action, next_done, next_state, verbose=args.verbose):
+    if args.validation and not validate_step(old_state, action, next_done, next_state, verbose=args.verbose):
         # print(old_state, next_state, next_done)
         num_errors += 1
         assert(not args.asserts)
@@ -33,4 +37,6 @@ for iter in range(args.num_steps):
     # print(iter)
     # time.sleep(1)
     # print(reward)
-print("Error rate:", num_errors/args.num_steps)
+print("SPS:", args.num_steps / (time.time() - start_time))
+if args.validation:
+    print("Error rate:", num_errors/args.num_steps)

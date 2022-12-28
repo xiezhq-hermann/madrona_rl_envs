@@ -34,6 +34,7 @@ NB_MODULE(madrona_cartpole_example_python, m) {
         .def("action_tensor", &Manager::actionTensor)
         .def("state_tensor", &Manager::stateTensor)
         .def("reward_tensor", &Manager::rewardTensor)
+        .def("world_id_tensor", &Manager::worldIDTensor)
     ;
 }
 
