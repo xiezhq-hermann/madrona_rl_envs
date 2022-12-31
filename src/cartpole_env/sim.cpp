@@ -63,15 +63,15 @@ static void resetWorld(Engine &ctx)
     };
 }
 
-// inline void resetSystem(Engine &ctx, WorldReset &reset)
-// {
-//     if (!reset.resetNow) {
-//         return;
-//     }
-//     reset.resetNow = false;
+inline void resetSystem(Engine &ctx, WorldReset &reset)
+{
+    // if (!reset.resetNow) {
+    //     return;
+    // }
+    reset.resetNow = false;
 
-//     // resetWorld(ctx);
-// }
+    // resetWorld(ctx);
+}
 
     inline void actionSystem(Engine &ctx, Action &action, State &state, Reward &reward)
 {
@@ -118,8 +118,14 @@ static void resetWorld(Engine &ctx)
 void Sim::setupTasks(TaskGraph::Builder &builder)
 {
     // auto reset_sys =
-    //     builder.parallelForNode<Engine, resetSystem, WorldReset>({});
+    //     builder.addToGraph<ParallelForNode<Engine, resetSystem, WorldReset>>({});
 
+    // auto sort_sys =
+    //     builder.addToGraph<SortArchetypeNode<Agent, WorldID>>({reset_sys});
+
+    // auto clear_tmp_alloc =
+    //     builder.addToGraph<ResetTmpAllocNode>({sort_sys});
+    
     auto action_sys = builder.addToGraph<ParallelForNode<Engine, actionSystem,
                                                      Action, State, Reward>>({});
 

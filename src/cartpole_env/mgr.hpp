@@ -19,12 +19,12 @@ public:
 
     MADRONA_IMPORT void step();
 
-    MADRONA_IMPORT madrona::py::GPUTensor resetTensor() const; // Bool or Int32
-    MADRONA_IMPORT madrona::py::GPUTensor actionTensor() const; // Bool or Int32
-    MADRONA_IMPORT madrona::py::GPUTensor stateTensor() const; // Vec4 Float32
-    MADRONA_IMPORT madrona::py::GPUTensor rewardTensor() const; // Float32
+    MADRONA_IMPORT madrona::py::Tensor resetTensor() const; // Bool or Int32
+    MADRONA_IMPORT madrona::py::Tensor actionTensor() const; // Bool or Int32
+    MADRONA_IMPORT madrona::py::Tensor stateTensor() const; // Vec4 Float32
+    MADRONA_IMPORT madrona::py::Tensor rewardTensor() const; // Float32
 
-    MADRONA_IMPORT madrona::py::GPUTensor worldIDTensor() const; // Float32
+    MADRONA_IMPORT madrona::py::Tensor worldIDTensor() const; // Float32
 
 
 private:

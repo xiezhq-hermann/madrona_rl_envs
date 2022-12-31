@@ -28,7 +28,7 @@ THETA_THRESHOLD_RADIANS = 12 * 2 * pi / 360
 
 class CartpoleMadronaNumpy(VectorEnv):
 
-    def __init__(self, num_envs, gpu_id):
+    def __init__(self, num_envs, gpu_id, debug_compile=True):
         high = np.array(
             [
                 X_THRESHOLD * 2,
@@ -45,12 +45,13 @@ class CartpoleMadronaNumpy(VectorEnv):
 
         self.sim = cartpole_python.CartpoleSimulator(
             gpu_id = gpu_id,
-            num_worlds = num_envs
+            num_worlds = num_envs,
+            debug_compile = debug_compile,
         )
 
         self.static_dones = self.sim.reset_tensor().to_torch()
         self.static_actions = self.sim.action_tensor().to_torch()
-        self.static_states = self.sim.state_tensor().to_torch()
+        self.static_observations = self.sim.observation_tensor().to_torch()
         self.static_rewards = self.sim.reward_tensor().to_torch()
 
         self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)[:, 0, :]
@@ -69,17 +70,17 @@ class CartpoleMadronaNumpy(VectorEnv):
 
         torch.gather(self.static_dones, 0, self.static_worldID, out=self.static_gathers)
 
-        return to_np(self.static_states), to_np(self.static_rewards), to_np(self.static_gathers), [{}] * self.num_envs
+        return to_np(self.static_observations), to_np(self.static_rewards), to_np(self.static_gathers), [{}] * self.num_envs
 
     def reset(self):
-        return to_np(self.static_states)
+        return to_np(self.static_observations)
 
     def close(self, **kwargs):
         pass
 
 class CartpoleMadronaTorch(VectorEnv):
 
-    def __init__(self, num_envs, gpu_id):
+    def __init__(self, num_envs, gpu_id, debug_compile=True):
         high = np.array(
             [
                 X_THRESHOLD * 2,
@@ -96,16 +97,17 @@ class CartpoleMadronaTorch(VectorEnv):
 
         self.sim = cartpole_python.CartpoleSimulator(
             gpu_id = gpu_id,
-            num_worlds = num_envs
+            num_worlds = num_envs,
+            debug_compile = debug_compile,
         )
 
         self.static_dones = self.sim.reset_tensor().to_torch()
         self.static_actions = self.sim.action_tensor().to_torch()
-        self.static_states = self.sim.state_tensor().to_torch()
+        self.static_observations = self.sim.observation_tensor().to_torch()
         self.static_rewards = self.sim.reward_tensor().to_torch()
 
         self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)[:, 0, :]
-        print(self.sim.world_id_tensor().to_torch())
+        # print(self.sim.world_id_tensor().to_torch())
 
         self.static_gathers = self.static_dones.detach().clone()
 
@@ -119,10 +121,10 @@ class CartpoleMadronaTorch(VectorEnv):
         # print(self.static_worldID)
         torch.gather(self.static_dones, 0, self.static_worldID, out=self.static_gathers)
 
-        return to_torch(self.static_states), to_torch(self.static_rewards), to_torch(self.static_gathers), self.infos
+        return to_torch(self.static_observations), to_torch(self.static_rewards), to_torch(self.static_gathers), self.infos
 
     def reset(self):
-        return to_torch(self.static_states)
+        return to_torch(self.static_observations)
 
     def close(self, **kwargs):
         pass

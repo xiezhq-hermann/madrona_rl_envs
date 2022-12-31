@@ -12,6 +12,7 @@ setup(name='madronarlenvs',
       install_requires=[
           'torch',
           'numpy',
+          'tqdm',
           'stable-baselines3'
       ],
       )

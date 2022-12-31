@@ -1,4 +1,4 @@
-from envs.cartpole_env import CartpoleMadronaTorch, validate_step
+from envs.balance_beam_env import BalanceMadronaTorch, validate_step
 import torch
 import time
 
@@ -22,13 +22,13 @@ parser.add_argument("--debug-compile", type=lambda x: bool(strtobool(x)), defaul
         help="if toggled, validate correctness")
 args = parser.parse_args()
 
-env = CartpoleMadronaTorch(args.num_envs, 0, args.debug_compile)
+env = BalanceMadronaTorch(args.num_envs, 0, args.debug_compile)
 old_state = env.reset()
-actions = env.static_actions[:, 0, 0]
+actions = env.static_actions
 num_errors = 0
 start_time = time.time()
 for iter in tqdm(range(args.num_steps), desc="Running Simulation"):
-    action = torch.randint_like(actions, high=2)
+    action = torch.randint_like(actions, high=4)
 
     next_state, reward, next_done, _ = env.step(action)
 
@@ -37,6 +37,9 @@ for iter in tqdm(range(args.num_steps), desc="Running Simulation"):
         assert(not args.asserts)
 
     old_state = next_state
+    # print(iter)
+    # time.sleep(1)
+    # print(reward)
 print("SPS:", args.num_steps / (time.time() - start_time))
 if args.validation:
     print("Error rate:", num_errors/args.num_steps)

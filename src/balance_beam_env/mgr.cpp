@@ -15,7 +15,10 @@
 using namespace madrona;
 using namespace madrona::py;
 
-namespace SimpleExample {
+#define TIME 3
+#define NUM_MOVES 4
+
+namespace Balance {
 
 struct Manager::Impl {
     Config cfg;
@@ -38,7 +41,6 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
     for (int64_t i = 0; i < (int64_t)cfg.numWorlds; i++) {
         world_inits[i] = WorldInit {
             episode_mgr,
-            int32_t(cfg.numAgentsPerWorld),
         };
     }
 
@@ -49,14 +51,14 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
         .worldDataAlignment = alignof(Sim),
         .numWorlds = cfg.numWorlds,
         // Increase this number before exporting more tensors
-        .numExportedBuffers = 3, 
+        .numExportedBuffers = 8, 
         .gpuID = (uint32_t)cfg.gpuID,
         .renderWidth = 0,
         .renderHeight = 0,
     }, {
         "",
-        { SIMPLE_SRC_LIST },
-        { SIMPLE_COMPILE_FLAGS },
+        { BALANCE_SRC_LIST },
+        { BALANCE_COMPILE_FLAGS },
         cfg.debugCompile ? CompileConfig::OptMode::Debug :
             CompileConfig::OptMode::LTO,
         CompileConfig::Executor::TaskGraph,
@@ -80,30 +82,69 @@ MADRONA_EXPORT void Manager::step()
     impl_->mwGPU.run();
 }
 
-MADRONA_EXPORT Tensor Manager::resetTensor() const
+MADRONA_EXPORT Tensor Manager::doneTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(0);
 
     return Tensor(dev_ptr, Tensor::ElementType::Int32,
-                     {impl_->cfg.numWorlds, 1}, impl_->cfg.gpuID);
+                     {impl_->cfg.numWorlds}, impl_->cfg.gpuID);
+}
+
+MADRONA_EXPORT Tensor Manager::activeAgentTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(1);
+
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds}, impl_->cfg.gpuID);
 }
 
 MADRONA_EXPORT Tensor Manager::actionTensor() const
 {
-    void *dev_ptr = impl_->mwGPU.getExported(1);
-
-    return Tensor(dev_ptr, Tensor::ElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numAgentsPerWorld, 3},
-         impl_->cfg.gpuID);
-}
-
-MADRONA_EXPORT Tensor Manager::positionTensor() const
-{
     void *dev_ptr = impl_->mwGPU.getExported(2);
 
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds, 1}, impl_->cfg.gpuID);
+}
+
+MADRONA_EXPORT Tensor Manager::observationTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(3);
+
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds, TIME * 2 + 1}, impl_->cfg.gpuID);
+}
+
+
+MADRONA_EXPORT Tensor Manager::actionMaskTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(4);
+
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds, NUM_MOVES}, impl_->cfg.gpuID);
+}
+    
+MADRONA_EXPORT Tensor Manager::rewardTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(5);
+
     return Tensor(dev_ptr, Tensor::ElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numAgentsPerWorld, 3},
-         impl_->cfg.gpuID);
+                  {2, impl_->cfg.numWorlds}, impl_->cfg.gpuID);
+}
+
+MADRONA_EXPORT Tensor Manager::worldIDTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(6);
+
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds}, impl_->cfg.gpuID);
+}
+
+MADRONA_EXPORT Tensor Manager::agentIDTensor() const
+{
+    void *dev_ptr = impl_->mwGPU.getExported(7);
+
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
+                  {2, impl_->cfg.numWorlds}, impl_->cfg.gpuID);
 }
 
 }

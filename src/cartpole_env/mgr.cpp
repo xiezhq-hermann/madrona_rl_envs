@@ -20,7 +20,7 @@ namespace Cartpole {
 struct Manager::Impl {
     Config cfg;
     EpisodeManager *episodeMgr;
-    TrainingExecutor mwGPU;
+    MWCudaExecutor mwGPU;
 
     static inline Impl * init(const Config &cfg);
 };
@@ -41,7 +41,7 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
         };
     }
 
-    TrainingExecutor mwgpu_exec({
+    MWCudaExecutor mwgpu_exec({
         .worldInitPtr = world_inits.data(),
         .numWorldInitBytes = sizeof(WorldInit),
         .numWorldDataBytes = sizeof(Sim),
@@ -79,43 +79,43 @@ MADRONA_EXPORT void Manager::step()
     impl_->mwGPU.run();
 }
 
-MADRONA_EXPORT GPUTensor Manager::resetTensor() const
+MADRONA_EXPORT Tensor Manager::resetTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(0);
 
-    return GPUTensor(dev_ptr, GPUTensor::ElementType::Int32,
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
                      {impl_->cfg.numWorlds, 1}, impl_->cfg.gpuID);
 }
 
-MADRONA_EXPORT GPUTensor Manager::actionTensor() const
+MADRONA_EXPORT Tensor Manager::actionTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(1);
 
-    return GPUTensor(dev_ptr, GPUTensor::ElementType::Int32,
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
                      {impl_->cfg.numWorlds, 1, 1}, impl_->cfg.gpuID);
 }
 
-MADRONA_EXPORT GPUTensor Manager::stateTensor() const
+MADRONA_EXPORT Tensor Manager::stateTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(2);
 
-    return GPUTensor(dev_ptr, GPUTensor::ElementType::Float32,
+    return Tensor(dev_ptr, Tensor::ElementType::Float32,
                      {impl_->cfg.numWorlds, 1, 4}, impl_->cfg.gpuID);
 }
 
-MADRONA_EXPORT GPUTensor Manager::rewardTensor() const
+MADRONA_EXPORT Tensor Manager::rewardTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(3);
 
-    return GPUTensor(dev_ptr, GPUTensor::ElementType::Float32,
+    return Tensor(dev_ptr, Tensor::ElementType::Float32,
                      {impl_->cfg.numWorlds, 1, 1}, impl_->cfg.gpuID);
 }
 
-MADRONA_EXPORT GPUTensor Manager::worldIDTensor() const
+MADRONA_EXPORT Tensor Manager::worldIDTensor() const
 {
     void *dev_ptr = impl_->mwGPU.getExported(4);
 
-    return GPUTensor(dev_ptr, GPUTensor::ElementType::Int32,
+    return Tensor(dev_ptr, Tensor::ElementType::Int32,
                      {impl_->cfg.numWorlds, 1, 1}, impl_->cfg.gpuID);
 }
 

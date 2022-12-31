@@ -14,10 +14,10 @@
 
 namespace nb = nanobind;
 
-namespace Cartpole {
+namespace Balance {
 
-NB_MODULE(madrona_cartpole_example_python, m) {
-    nb::class_<Manager> (m, "CartpoleSimulator")
+NB_MODULE(madrona_balance_example_python, m) {
+    nb::class_<Manager> (m, "BalanceBeamSimulator")
         .def("__init__", [](Manager *self,
                             int64_t gpu_id,
                             int64_t num_worlds,
@@ -30,11 +30,15 @@ NB_MODULE(madrona_cartpole_example_python, m) {
         }, nb::arg("gpu_id"), nb::arg("num_worlds"),
            nb::arg("debug_compile") = true)
         .def("step", &Manager::step)
-        .def("reset_tensor", &Manager::resetTensor)
+        .def("done_tensor", &Manager::doneTensor)
+        .def("active_agent_tensor", &Manager::activeAgentTensor)
         .def("action_tensor", &Manager::actionTensor)
-        .def("observation_tensor", &Manager::stateTensor)
+        .def("observation_tensor", &Manager::observationTensor)
+        .def("agent_state_tensor", &Manager::observationTensor)
+        .def("action_mask_tensor", &Manager::actionMaskTensor)
         .def("reward_tensor", &Manager::rewardTensor)
         .def("world_id_tensor", &Manager::worldIDTensor)
+        .def("agent_id_tensor", &Manager::agentIDTensor)
     ;
 }
 
