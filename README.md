@@ -54,3 +54,15 @@ python cartpole_train_torch.py --num-envs 32 --madrona True --num-steps 200 --to
 # baseline (numpy)
 python cartpole_train_numpy.py --num-envs 32 --madrona False --num-steps 200 --total-timesteps 160000
 ```
+
+For balance beam:
+
+```
+cd scripts
+
+# simulating the environment (madrona)
+python balance_example.py --num-envs 32
+
+# learning with madrona
+python balance_train.py --num-envs 1000 --num-steps 10 --total-timesteps 40000000 --update-epochs 4
+```

@@ -2,7 +2,9 @@ from gym.spaces import Discrete, MultiDiscrete
 import build.madrona_python as madrona_python
 import build.madrona_balance_example_python as balance_python
 
-from .multiagentenv import MultiAgentEnv
+from pantheonrl_extension.multiagentenv import MultiAgentEnv
+from pantheonrl_extension.vectorenv import MadronaEnv
+from pantheonrl_extension.vectorobservation import VectorObservation
 
 import numpy as np
 
@@ -17,95 +19,56 @@ SCALE = 0.2
 
 MAX_STATES = (NUM_SPACES ** 2)
 
-def to_torch(a):
-    return a.detach().clone()
-
-class BalanceMadronaTorch():
+class BalanceMadronaTorch(MadronaEnv):
 
     def __init__(self, num_envs, gpu_id, debug_compile=True):
+        sim = balance_python.BalanceBeamSimulator(
+            gpu_id = gpu_id,
+            num_worlds = num_envs,
+            debug_compile = debug_compile,
+        )
+        super().__init__(num_envs, gpu_id, sim)
+        
         self.observation_space = MultiDiscrete([NUM_SPACES + 2 * BUFFER] * 2 * TIME + [TIME])
         self.action_space = Discrete(len(VALID_MOVES))
 
         self.share_observation_space = self.observation_space
 
-        self.num_envs = num_envs
-        # super().__init__(num_envs, observation_space, action_space)
 
-        self.sim = balance_python.BalanceBeamSimulator(
-            gpu_id = gpu_id,
-            num_worlds = num_envs,
-            debug_compile = debug_compile,
-        )
+from gym.vector.vector_env import VectorEnv
+from pantheonrl_extension.vectoragent import RandomVectorAgent
 
-        self.static_dones = self.sim.done_tensor().to_torch()
-        
-        self.static_active_agents = self.sim.active_agent_tensor().to_torch()
-        self.static_actions = self.sim.action_tensor().to_torch()
-        self.static_observations = self.sim.observation_tensor().to_torch()
-        self.static_agent_states = self.sim.agent_state_tensor().to_torch()
-        self.static_action_masks = self.sim.action_mask_tensor().to_torch()
-        self.static_rewards = self.sim.reward_tensor().to_torch()
-        self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)
+class BalanceGym(VectorEnv):
 
-        # verify all agent IDs are as expected
-        self.static_agentID = self.sim.agent_id_tensor().to_torch().to(torch.long)
+    def __init__(self, num_envs, gpu_id, debug_compile=True):
 
-        # print(self.sim.world_id_tensor().to_torch())
+        observation_space = MultiDiscrete([NUM_SPACES + 2 * BUFFER] * 2 * TIME + [TIME])
+        action_space = Discrete(len(VALID_MOVES))
+        super().__init__(num_envs, observation_space, action_space)
 
-        # self.static_gathered_dones = self.static_dones.detach().clone()
+        self.sim = BalanceMadronaTorch(num_envs, gpu_id, debug_compile)
+        partner = RandomVectorAgent(lambda: torch.randint_like(self.sim.static_actions[0], high=4))
 
-        self.static_scattered_active_agents = self.static_active_agents.detach().clone()
-        self.static_scattered_observations = self.static_observations.detach().clone()
-        self.static_scattered_agent_states = self.static_agent_states.detach().clone()
-        self.static_scattered_action_masks = self.static_action_masks.detach().clone()
-        self.static_scattered_rewards = self.static_rewards.detach().clone()
-
-        # self.static_scattered_active_agents.scatter_(1, self.static_worldID[:,:], self.static_active_agents)
-        # self.static_scattered_observations.scatter_(1, self.static_worldID[:,:,None].expand(self.static_observations.size()), self.static_observations)
-        # self.static_scattered_agent_states.scatter_(1, self.static_worldID[:,:,None].expand(self.static_agent_states.size()), self.static_agent_states)
-        # self.static_scattered_action_masks.scatter_(1, self.static_worldID[:,:,None].expand(self.static_action_masks.size()), self.static_action_masks)
-        # self.static_scattered_rewards.scatter_(1, self.static_worldID[:,:], self.static_rewards)
-
-        self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
-        self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
-        self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
-        self.static_scattered_action_masks[self.static_agentID, self.static_worldID, :] = self.static_action_masks
-        self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
-
+        self.sim.add_partner_agent(partner)
         self.infos = [{}] * self.num_envs
-        # print("Dones", self.static_dones)
-        # print("Obs", self.static_observations)
-        # print("Corrected Obs", self.static_scattered_observations)
-        # print("Rew", self.static_rewards)
-        # print("WorldID", self.static_worldID)
-        # print("AgentID", self.static_agentID)
+        # sim = balance_python.BalanceBeamSimulator(
+        #     gpu_id = gpu_id,
+        #     num_worlds = num_envs,
+        #     debug_compile = debug_compile,
+        # )
+        # super().__init__(num_envs, gpu_id, sim)
+        
+        # self.observation_space = MultiDiscrete([NUM_SPACES + 2 * BUFFER] * 2 * TIME + [TIME])
+        # self.action_space = Discrete(len(VALID_MOVES))
+
+        # self.share_observation_space = self.observation_space
 
     def step(self, actions):
-        self.static_actions.copy_(actions[self.static_agentID, self.static_worldID, :])
-        # torch.gather(actions, 1, self.static_worldID[:,:,None], out=self.static_actions)
-        
-        self.sim.step()
-
-        # torch.gather(self.static_dones, 0, self.static_worldID[0], out=self.static_gathered_dones)
-        # torch.gather(self.static_active_agents, 1, self.static_worldID, out=self.static_gathered_actives)
-
-        self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
-        self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
-        self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
-        self.static_scattered_action_masks[self.static_agentID, self.static_worldID, :] = self.static_action_masks
-        self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
-        
-        # self.static_scattered_active_agents.scatter_(1, self.static_worldID[:,:], self.static_active_agents)
-        # self.static_scattered_observations.scatter_(1, self.static_worldID[:,:,None].expand(self.static_observations.size()), self.static_observations)
-        # self.static_scattered_agent_states.scatter_(1, self.static_worldID[:,:,None].expand(self.static_agent_states.size()), self.static_agent_states)
-        # self.static_scattered_action_masks.scatter_(1, self.static_worldID[:,:,None].expand(self.static_action_masks.size()), self.static_action_masks)
-        # self.static_scattered_rewards.scatter_(1, self.static_worldID[:,:], self.static_rewards)
-
-        return to_torch(self.static_scattered_observations), to_torch(self.static_scattered_rewards), to_torch(self.static_dones), self.infos
-        # return to_torch(self.static_observations), to_torch(self.static_rewards), to_torch(self.static_gathered_dones), self.infos
+        obs, rew, done, info = self.sim.step(actions[:, None])
+        return obs.obs.float(), rew, done, info
 
     def reset(self):
-        return to_torch(self.static_scattered_observations)
+        return self.sim.reset().obs.float()
 
     def close(self, **kwargs):
         pass
@@ -182,7 +145,7 @@ class PantheonLine(MultiAgentEnv):
 
 STATIC_ENV = PantheonLine()
     
-def validate_step(states, actions, dones, nextstates, verbose=True):
+def validate_step(states, actions, dones, nextstates, rewards, verbose=True):
     STATIC_ENV.n_reset()
     
     numenvs = dones.size(0)
@@ -191,7 +154,8 @@ def validate_step(states, actions, dones, nextstates, verbose=True):
     actions = actions.cpu().numpy()
     dones = dones.cpu().numpy()
     nextstates = nextstates.cpu().numpy()
-
+    rewards = rewards.cpu().numpy()
+    
     retval = True
     
     for i in range(numenvs):
@@ -200,10 +164,19 @@ def validate_step(states, actions, dones, nextstates, verbose=True):
         STATIC_ENV.current_time = states[0][i][-1]
         STATIC_ENV.ego_state = unview(states[0][i][:TIME], STATIC_ENV.current_time)
         STATIC_ENV.alt_state = unview(states[1][i][:TIME], STATIC_ENV.current_time)
-        _, truenext, _, truedone, _ = STATIC_ENV.n_step(actions[:,i])
+        _, truenext, truerewards, truedone, _ = STATIC_ENV.n_step(actions[:,i])
         truenext = np.array([truenext[0][0], truenext[1][0]])
+        truerewards = np.array([truerewards[0], truerewards[1]])
         # if truedone:
         #     print("FINISHED EPISODE")
+        if not np.isclose(truerewards, rewards[:, i]).all():
+            if verbose:
+                print("start state:", states[:, i], i)
+                print("action:", actions[:, i])
+                print("madrona transition:", nextstates[:, i])
+                print("numpy transition:", truenext)
+                print(f"Rewards mismatch: numpy={truerewards}, madrona={rewards[:, i]}")
+            retval = False
         
         if truedone != dones[i]:
             if verbose:

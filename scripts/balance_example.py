@@ -19,20 +19,23 @@ parser.add_argument("--asserts", type=lambda x: bool(strtobool(x)), default=Fals
 parser.add_argument("--validation", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, validate correctness")
 parser.add_argument("--debug-compile", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
-        help="if toggled, validate correctness")
+        help="if toggled, use debug compilation mode")
 args = parser.parse_args()
 
 env = BalanceMadronaTorch(args.num_envs, 0, args.debug_compile)
-old_state = env.reset()
+old_state = env.n_reset()
+old_state = torch.stack([x.obs for x in old_state])
 actions = env.static_actions
 num_errors = 0
 start_time = time.time()
 for iter in tqdm(range(args.num_steps), desc="Running Simulation"):
     action = torch.randint_like(actions, high=4)
 
-    next_state, reward, next_done, _ = env.step(action)
+    next_state, reward, next_done, _ = env.n_step(action)
 
-    if args.validation and not validate_step(old_state, action, next_done, next_state, verbose=args.verbose):
+    next_state = torch.stack([x.obs for x in next_state])
+
+    if args.validation and not validate_step(old_state, action, next_done, next_state, reward, verbose=args.verbose):
         num_errors += 1
         assert(not args.asserts)
 
