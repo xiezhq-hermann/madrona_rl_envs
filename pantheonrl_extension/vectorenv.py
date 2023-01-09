@@ -321,3 +321,75 @@ class MadronaEnv(VectorMultiAgentEnv):
 
     def close(self, **kwargs):
         pass
+
+class SyncVectorEnv(VectorMultiAgentEnv):
+
+    def __init__(self, env_fns, device=torch.device('cuda', 0)):
+
+        self.envs = [fn() for fn in env_fns]
+        
+        self.observation_space = self.envs[0].observation_space
+        self.action_space = self.envs[0].action_space
+        self.share_observation_space = self.envs[0].share_observation_space
+        
+        super().__init__(len(env_fns), device=device, n_players=self.envs[0].n_players)
+        
+
+    def n_step(self, actions):
+        infos = []
+        for i in range(len(self.envs)):
+            envactions = []
+            for agent in self.agents_tuples[i]:
+                envactions.append(actions[agent, i])
+            agentsi, obsi, rewsi, donesi, infosi = self.envs[i].n_step(tuple(envactions))
+            if donesi:
+                agentsi, obsi = self.envs[i].n_reset()
+            self.agents_tuples[i] = agentsi
+            if i == 0:
+                self.static_rewards = torch.zeros((self.n_players, self.num_envs), device=self.device)
+                self.static_dones = torch.zeros((self.num_envs), device=self.device)
+            infos.append(infosi)
+            self.static_dones[i] = donesi
+            for agent in range(self.n_players):
+                self.static_rewards[agent, i] = rewsi[agent]
+
+            for j in range(len(agentsi)):
+                agent = agentsi[j]
+                self.static_active_agents[agent, i] = True
+                self.static_observations[agent, i] = torch.from_numpy(obsi[j][0])
+                self.static_agent_states[agent, i] = torch.from_numpy(obsi[j][1])
+                self.static_action_masks[agent, i] = torch.from_numpy(obsi[j][2])
+
+        obs = [VectorObservation(to_torch(self.static_active_agents[i]),
+                                 to_torch(self.static_observations[i]),
+                                 to_torch(self.static_agent_states[i]),
+                                 to_torch(self.static_action_masks[i]))
+               for i in range(self.n_players)]
+            
+        return obs, self.static_rewards, self.static_dones, infos
+
+    def n_reset(self):
+        self.agents_tuples = []
+        for i in range(len(self.envs)):
+            agentsi, obsi = self.envs[i].n_reset()
+            self.agents_tuples.append(agentsi)
+            # obsi = (obs, state, action_mask)
+            if i == 0:
+                self.static_active_agents = torch.zeros((self.n_players, self.num_envs), device=self.device, dtype=torch.bool)
+                self.static_observations = torch.zeros((self.n_players, self.num_envs) + obsi[0][0].shape, device=self.device)
+                self.static_agent_states = torch.zeros((self.n_players, self.num_envs) + obsi[0][1].shape, device=self.device)
+                self.static_action_masks = torch.ones((self.n_players, self.num_envs) + obsi[0][2].shape, device=self.device, dtype=torch.bool)
+
+            for j in range(len(agentsi)):
+                agent = agentsi[j]
+                self.static_active_agents[agent, i] = True
+                self.static_observations[agent, i] = torch.from_numpy(obsi[j][0])
+                self.static_agent_states[agent, i] = torch.from_numpy(obsi[j][1])
+                self.static_action_masks[agent, i] = torch.from_numpy(obsi[j][2])
+
+        obs = [VectorObservation(to_torch(self.static_active_agents[i]),
+                                 to_torch(self.static_observations[i]),
+                                 to_torch(self.static_agent_states[i]),
+                                 to_torch(self.static_action_masks[i]))
+               for i in range(self.n_players)]
+        return obs

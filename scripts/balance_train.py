@@ -12,8 +12,9 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
-from envs.balance_beam_env import BalanceMadronaTorch
+from envs.balance_beam_env import BalanceMadronaTorch, PantheonLine
 from pantheonrl_extension.vectoragent import RandomVectorAgent, CleanPPOAgent
+from pantheonrl_extension.vectorenv import SyncVectorEnv
 
 from tqdm import tqdm
 
@@ -69,13 +70,27 @@ def parse_args():
     # fmt: on
     return args
 
+def make_env(seed, idx):
+    def thunk():
+        env = PantheonLine()
+        env.seed(seed)
+        env.action_space.seed(seed)
+        env.observation_space.seed(seed)
+        return env
+
+    return thunk
+
 args = parse_args()
-run_name = f"Balance_Train__{args.seed}__{int(time.time())}__{args.num_envs}_madrona"
+run_name = f"Balance_Train__{args.seed}__{int(time.time())}__{args.num_envs}_{'madrona' if args.madrona else 'numpy'}"
+
+print("Run saved to:", run_name)
 
 if args.madrona:
     env = BalanceMadronaTorch(args.num_envs, 0, False)
 else:
-    assert False
+    env = SyncVectorEnv(
+            [make_env(args.seed + i, i) for i in range(args.num_envs)]
+        )
     
 random.seed(args.seed)
 np.random.seed(args.seed)
