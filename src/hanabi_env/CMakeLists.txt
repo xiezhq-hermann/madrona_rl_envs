@@ -2,6 +2,17 @@ set(SIMULATOR_SRCS
   sim.hpp sim.cpp
 )
 
+add_library(hanabi_example_cpu_impl STATIC
+    ${SIMULATOR_SRCS}
+)
+
+target_link_libraries(hanabi_example_cpu_impl 
+    PUBLIC
+        madrona_mw_core
+    PRIVATE
+        madrona_common
+)
+
 madrona_build_compile_defns(
   OUT_TARGET
   hanabi_example_gpu_srcs
@@ -23,6 +34,8 @@ target_link_libraries(hanabi_example_mgr PRIVATE
     madrona_common
     madrona_importer
     hanabi_example_gpu_srcs
+    hanabi_example_cpu_impl
+    madrona_mw_cpu
 )
 
 target_compile_definitions(hanabi_example_mgr PRIVATE

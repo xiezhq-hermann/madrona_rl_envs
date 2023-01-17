@@ -9,7 +9,7 @@ using namespace madrona::math;
 namespace Hanabi {
 
     
-void Sim::registerTypes(ECSRegistry &registry)
+void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
 
@@ -28,7 +28,7 @@ void Sim::registerTypes(ECSRegistry &registry)
     registry.registerComponent<Move>();
     registry.registerComponent<Hand>();
 
-    registry.registerArchetype<Agent>();
+    registry.registerFixedSizeArchetype<Agent>(cfg.numPlayers);
 
     // Export tensors for pytorch
     registry.exportSingleton<WorldReset>(0);
@@ -826,7 +826,7 @@ static void resetWorld(Engine &ctx)
 }
     
 
-void Sim::setupTasks(TaskGraph::Builder &builder)
+void Sim::setupTasks(TaskGraph::Builder &builder, const Config &)
 {   
     auto action_sys = builder.addToGraph<ParallelForNode<Engine, actionSystem,
                                                      Deck>>({});
@@ -843,7 +843,7 @@ void Sim::setupTasks(TaskGraph::Builder &builder)
 }
 
 
-Sim::Sim(Engine &ctx, const WorldInit &init)
+Sim::Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
       colors(init.colors),
@@ -871,6 +871,6 @@ Sim::Sim(Engine &ctx, const WorldInit &init)
     // printf("Did initial reset\n");
 }
 
-MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, WorldInit);
+MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Config, WorldInit, RendererInitStub);
 
 }

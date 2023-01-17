@@ -77,6 +77,7 @@ class HanabiMadrona(MadronaEnv):
 
         # sim = None
         sim = hanabi_python.HanabiSimulator(
+            exec_mode = hanabi_python.ExecMode.CUDA,
             gpu_id = gpu_id,
             num_worlds = num_envs,
             colors = config["colors"],
