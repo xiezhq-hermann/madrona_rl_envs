@@ -19,7 +19,7 @@ using namespace madrona::py;
 namespace Hanabi {
 
 using CPUExecutor =
-    TaskGraphExecutor<Engine, Sim, WorldInit, RendererInitStub>;
+    TaskGraphExecutor<Engine, Sim, Config, WorldInit, RendererInitStub>;
 
 struct Manager::Impl {
     Config cfg;
@@ -42,6 +42,7 @@ struct Manager::CPUImpl final : public Manager::Impl {
     CPUExecutor mwCPU;
 
     inline CPUImpl(const Config &cfg,
+                   const Hanabi::Config &app_cfg,
                    EpisodeManager *episode_mgr,
                    WorldInit *world_inits,
                    uint32_t num_exported_buffers)
@@ -54,6 +55,7 @@ struct Manager::CPUImpl final : public Manager::Impl {
                   .cameraMode = ThreadPoolExecutor::CameraMode::None,
                   .renderGPUID = 0,
               },
+              app_cfg,
               world_inits)
     {}
 
@@ -76,6 +78,7 @@ struct Manager::GPUImpl final : public Manager::Impl {
     MWCudaExecutor mwGPU;
 
     inline GPUImpl(const Config &cfg,
+                   const Hanabi::Config &app_cfg,
                    EpisodeManager *episode_mgr,
                    WorldInit *world_inits,
                    uint32_t num_exported_buffers)
@@ -83,6 +86,8 @@ struct Manager::GPUImpl final : public Manager::Impl {
           mwGPU({
                   .worldInitPtr = world_inits,
                   .numWorldInitBytes = sizeof(WorldInit),
+                  .userConfigPtr = (void *)&app_cfg,
+                  .numUserConfigBytes = sizeof(Hanabi::Config),
                   .numWorldDataBytes = sizeof(Sim),
                   .worldDataAlignment = alignof(Sim),
                   .numWorlds = cfg.numWorlds,
@@ -132,6 +137,10 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
 
     HeapArray<WorldInit> world_inits(cfg.numWorlds);
 
+    Hanabi::Config app_cfg {
+        cfg.players,
+    };
+
     for (int64_t i = 0; i < (int64_t)cfg.numWorlds; i++) {
         world_inits[i] = WorldInit {
             episode_mgr,
@@ -147,11 +156,11 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
     uint32_t num_exported_buffers = 9;
 
     if (cfg.execMode == ExecMode::CPU) {
-        return new CPUImpl(
-            cfg, episode_mgr, world_inits.data(), num_exported_buffers);
+        return new CPUImpl(cfg, app_cfg, episode_mgr, world_inits.data(),
+            num_exported_buffers);
     } else {
-        return new GPUImpl(
-            cfg, episode_mgr, world_inits.data(), num_exported_buffers);
+        return new GPUImpl(cfg, app_cfg,
+            episode_mgr, world_inits.data(), num_exported_buffers);
     }
 }
 

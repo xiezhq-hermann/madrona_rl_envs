@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 STATIC_ENV = PantheonHanabi()
 
-env = BalanceMadronaTorch(args.num_envs, 0, args.debug_compile)
+env = HanabiMadrona(args.num_envs, 0, args.debug_compile)
 old_state = env.n_reset()
 old_state = torch.stack([x.obs for x in old_state])
 actions = env.static_actions

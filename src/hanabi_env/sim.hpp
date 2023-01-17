@@ -133,10 +133,14 @@ namespace Hanabi {
     struct Agent : public madrona::Archetype<Action, Observation, State, AgentID, ActionMask, ActiveAgent, Reward,
                                              Move, Hand> {};
 
-    struct Sim : public madrona::WorldBase {
-        static void registerTypes(madrona::ECSRegistry &registry);
+    struct Config {
+        uint32_t numPlayers;
+    };
 
-        static void setupTasks(madrona::TaskGraph::Builder &builder);
+    struct Sim : public madrona::WorldBase {
+        static void registerTypes(madrona::ECSRegistry &registry, const Config &cfg);
+
+        static void setupTasks(madrona::TaskGraph::Builder &builder, const Config &cfg);
 
         Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &);
 

@@ -278,7 +278,7 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_scattered_agent_states = self.static_agent_states.detach().clone()
         self.static_scattered_action_masks = self.static_action_masks.detach().clone()
         self.static_scattered_rewards = self.static_rewards.detach().clone()
-
+    
         self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
         self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
         self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
