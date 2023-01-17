@@ -75,7 +75,6 @@ class HanabiMadrona(MadronaEnv):
         self.hanabi_env = HanabiEnv(config=self.config)
         observation_shape = self.hanabi_env.vectorized_observation_shape()
 
-        import time
         # sim = None
         sim = hanabi_python.HanabiSimulator(
             gpu_id = gpu_id,
@@ -88,14 +87,11 @@ class HanabiMadrona(MadronaEnv):
             debug_compile = debug_compile,
         )
 
-        time.sleep(10)
-        print("DONE SLEEPING")
-
         super().__init__(num_envs, gpu_id, sim)
         self.observation_space = MultiBinary(observation_shape[0])
         self.action_space = Discrete(self.hanabi_env.game.max_moves())
 
-        self.share_observation_space = MultiBinary(observation_shape[0] * 2 + 1)
+        self.share_observation_space = MultiBinary(observation_shape[0] + config['ranks'] * config['colors'] * 5)
         
 
 class PantheonHanabi(MultiAgentEnv):

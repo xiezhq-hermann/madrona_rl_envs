@@ -304,14 +304,11 @@ void Sim::registerTypes(ECSRegistry &registry)
 
     inline int copyObsToState(Engine &ctx, Entity &agent, int offset)
 {
-    printf("%d\n", offset);
     Observation &obs = ctx.getUnsafe<Observation>(agent);
     State &state = ctx.getUnsafe<State>(agent);
     for (int i = 0; i < offset; i++) {
         state.bitvec[i] = obs.bitvec[i];
-        printf("%d ", state.bitvec[i]);
     }
-    printf("Used state\n");
     return offset;
 }
 
@@ -351,7 +348,6 @@ void Sim::registerTypes(ECSRegistry &registry)
     offset = encodeOwnHand(ctx, agent, offset);
 
     (void) offset;
-    printf("State size %d\n", offset);
 }
 
     inline void generateActionMask(Engine &ctx, Entity &agent)
@@ -379,7 +375,6 @@ void Sim::registerTypes(ECSRegistry &registry)
     // Play
     for (int i = 0; i < hand_size; i++) {
         mask.isValid[offset++] = (i < hand.size);
-        printf("HUH %d\n", mask.isValid[offset-1]);
     }
 
     // Reveal Color
@@ -418,7 +413,6 @@ void Sim::registerTypes(ECSRegistry &registry)
         mask.isValid[offset] = 0;
     }
 
-    printf("Generated action masks\n");
 }
 
 static void resetWorld(Engine &ctx)
@@ -830,25 +824,18 @@ static void resetWorld(Engine &ctx)
         resetWorld(ctx);
     }
 }
-
-    inline void verysimple(Engine &ctx, WorldReset &reset)
-{
-    reset.resetNow = false;
-}
-
     
 
 void Sim::setupTasks(TaskGraph::Builder &builder)
 {   
-    // auto action_sys = builder.addToGraph<ParallelForNode<Engine, actionSystem,
-    //                                                  Deck>>({});
+    auto action_sys = builder.addToGraph<ParallelForNode<Engine, actionSystem,
+                                                     Deck>>({});
 
-    // auto update_obs = builder.addToGraph<ParallelForNode<Engine, observationSystem,
-    //                                                      Deck>>({action_sys});
+    auto update_obs = builder.addToGraph<ParallelForNode<Engine, observationSystem,
+                                                         Deck>>({action_sys});
 
-    // auto terminate_sys = builder.addToGraph<ParallelForNode<Engine, checkDone, WorldReset>>({update_obs});
+    auto terminate_sys = builder.addToGraph<ParallelForNode<Engine, checkDone, WorldReset>>({update_obs});
 
-    auto terminate_sys = builder.addToGraph<ParallelForNode<Engine, verysimple, WorldReset>>({});
     (void)terminate_sys;
     // (void) action_sys;
 
@@ -881,7 +868,7 @@ Sim::Sim(Engine &ctx, const WorldInit &init)
     resetWorld(ctx);
     ctx.getSingleton<WorldReset>().resetNow = false;
 
-    printf("Did initial reset\n");
+    // printf("Did initial reset\n");
 }
 
 MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, WorldInit);

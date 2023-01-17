@@ -66,3 +66,13 @@ python balance_example.py --num-envs 32
 # learning with madrona
 python balance_train.py --num-envs 1000 --num-steps 10 --total-timesteps 40000000 --update-epochs 4
 ```
+
+For hanabi:
+
+```
+cd scripts
+
+# learning with madrona
+python hanabi_train.py --num-envs 1000 --num-steps 100 --total-timesteps 100000000 --learning-rate 7e-4 --update-epochs 1 --num-minibatches 1 --madrona True --ent-coef 0.015 --hanabi-type full
+```
+

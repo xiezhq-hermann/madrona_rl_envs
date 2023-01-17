@@ -53,7 +53,7 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
         .worldDataAlignment = alignof(Sim),
         .numWorlds = cfg.numWorlds,
         // Increase this number before exporting more tensors
-        .numExportedBuffers = 8, 
+        .numExportedBuffers = 9, 
         .gpuID = (uint32_t)cfg.gpuID,
         .cameraMode = StateConfig::CameraMode::None,
         .renderWidth = 0,

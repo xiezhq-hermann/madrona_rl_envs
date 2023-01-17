@@ -50,6 +50,7 @@ Manager::Impl * Manager::Impl::init(const Config &cfg)
         // Increase this number before exporting more tensors
         .numExportedBuffers = 5, 
         .gpuID = (uint32_t)cfg.gpuID,
+        .cameraMode = StateConfig::CameraMode::None,
         .renderWidth = 0,
         .renderHeight = 0,
     }, {

@@ -261,42 +261,17 @@ class MadronaEnv(VectorMultiAgentEnv):
 
         self.sim = sim
 
-        print("static dones")
         self.static_dones = self.sim.done_tensor().to_torch()
-        print(self.static_dones, self.static_dones.shape)
+        self.static_active_agents = self.sim.active_agent_tensor().to_torch()
         
-        print("static active")
-        self.static_active_agents = self.sim.active_agent_tensor().to_torch().to(torch.bool)
-        print(self.static_active_agents)
-        
-        print("static actions")
         self.static_actions = self.sim.action_tensor().to_torch()
         # print(self.static_actions)
-        
-        print("static obs")
         self.static_observations = self.sim.observation_tensor().to_torch()
-        print(self.static_observations, self.static_observations.shape)
-        print(torch.all(self.static_observations < 2))
-        
-        print("static states")
         self.static_agent_states = self.sim.agent_state_tensor().to_torch()
-        print(self.static_agent_states, self.static_agent_states.shape)
-        
-        print("static masks")
-        self.static_action_masks = self.sim.action_mask_tensor().to_torch().to(torch.bool)
-        print(self.static_action_masks)
-        
-        print("static rews")
+        self.static_action_masks = self.sim.action_mask_tensor().to_torch()
         self.static_rewards = self.sim.reward_tensor().to_torch()
-        print(self.static_rewards)
-        
-        print("static world id")
         self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)
-        print(self.static_worldID)
-        
-        print("static agent id")
         self.static_agentID = self.sim.agent_id_tensor().to_torch().to(torch.long)
-        print(self.static_agentID)
         
         self.static_scattered_active_agents = self.static_active_agents.detach().clone()
         self.static_scattered_observations = self.static_observations.detach().clone()
@@ -304,7 +279,6 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_scattered_action_masks = self.static_action_masks.detach().clone()
         self.static_scattered_rewards = self.static_rewards.detach().clone()
 
-        print("Starting to scatter")
         self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
         self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
         self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
@@ -312,42 +286,41 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
 
         self.infos = [{}] * self.num_envs
-        print("Done scattering")
 
     def n_step(self, actions):
-        print("Action copy")
         self.static_actions.copy_(actions[self.static_agentID, self.static_worldID, :])
 
         self.sim.step()
 
-        
-        print("N Step")
         self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
         self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
         self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
         self.static_scattered_action_masks[self.static_agentID, self.static_worldID, :] = self.static_action_masks
         self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
 
-        obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i]),
+        obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i].to(torch.bool)),
                                  to_torch(self.static_scattered_observations[i]),
                                  to_torch(self.static_scattered_agent_states[i]),
-                                 to_torch(self.static_scattered_action_masks[i]))
+                                 to_torch(self.static_scattered_action_masks[i].to(torch.bool)))
                for i in range(2)]
+
+        # print(obs[0].active, obs[1].active)
+        # print(self.static_active_agents)
+        # print(self.static_action_masks)
 
         return obs, to_torch(self.static_scattered_rewards), to_torch(self.static_dones), self.infos
 
     def n_reset(self):
-        print("N Reset")
         self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
         self.static_scattered_observations[self.static_agentID, self.static_worldID, :] = self.static_observations
         self.static_scattered_agent_states[self.static_agentID, self.static_worldID, :] = self.static_agent_states
         self.static_scattered_action_masks[self.static_agentID, self.static_worldID, :] = self.static_action_masks
         self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
 
-        obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i]),
+        obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i].to(torch.bool)),
                                  to_torch(self.static_scattered_observations[i]),
                                  to_torch(self.static_scattered_agent_states[i]),
-                                 to_torch(self.static_scattered_action_masks[i]))
+                                 to_torch(self.static_scattered_action_masks[i].to(torch.bool)))
                for i in range(2)]
         return obs
 

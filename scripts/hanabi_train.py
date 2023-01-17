@@ -36,7 +36,7 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--total-timesteps", type=int, default=500000,
         help="total timesteps of the experiments")
-    parser.add_argument("--num-envs", type=int, default=4,
+    parser.add_argument("--num-envs", type=int, default=1, # change back
         help="the number of parallel game environments")
     parser.add_argument("--learning-rate", type=float, default=2.5e-4,
         help="the learning rate of the optimizer")
@@ -67,7 +67,7 @@ def parse_args():
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
 
-    parser.add_argument("--hanabi-type", type=str, default="very_small",
+    parser.add_argument("--hanabi-type", type=str, default="full",
                         choices=['very_small', 'small', 'full'],
                         help="Choice for hanabi type.")
     args = parser.parse_args()
@@ -92,7 +92,7 @@ run_name = f"Hanabi_{args.hanabi_type}_Train__{args.seed}__{int(time.time())}__{
 print("Run saved to:", run_name)
 
 if args.madrona:
-    env = HanabiMadrona(args.num_envs, 0, True, han_conf)
+    env = HanabiMadrona(args.num_envs, 0, False, han_conf)
 else:
     env = SyncVectorEnv(
             [make_env(args.seed + i, i) for i in range(args.num_envs)]
