@@ -31,6 +31,8 @@
 
 namespace Hanabi {
 
+    struct RendererInitStub {};
+
     // 3D Position & Quaternion Rotation
     // These classes are defined in madrona/components.hpp
 
@@ -136,7 +138,7 @@ namespace Hanabi {
 
         static void setupTasks(madrona::TaskGraph::Builder &builder);
 
-        Sim(Engine &ctx, const WorldInit &init);
+        Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &);
 
         EpisodeManager *episodeMgr;
         RNG rng;

@@ -843,7 +843,7 @@ void Sim::setupTasks(TaskGraph::Builder &builder)
 }
 
 
-Sim::Sim(Engine &ctx, const WorldInit &init)
+Sim::Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
       colors(init.colors),
@@ -871,6 +871,6 @@ Sim::Sim(Engine &ctx, const WorldInit &init)
     // printf("Did initial reset\n");
 }
 
-MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, WorldInit);
+MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, WorldInit, RendererInitStub);
 
 }
