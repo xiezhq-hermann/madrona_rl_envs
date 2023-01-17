@@ -67,20 +67,39 @@ class CleanRLNetwork(nn.Module):
     def __init__(self, envs):
         super().__init__()
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.share_observation_space.shape).prod(), 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 1), std=1.0),
+            layer_init(nn.Linear(np.array(envs.share_observation_space.shape).prod(), 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, 1), std=0.01),
         )
         
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.observation_space.shape).prod(), 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, envs.action_space.n), std=0.01),
+            layer_init(nn.Linear(np.array(envs.observation_space.shape).prod(), 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, 512)),
+            nn.ReLU(),
+            layer_init(nn.Linear(512, envs.action_space.n), std=0.01),
         )
+        # self.critic = nn.Sequential(
+        #     layer_init(nn.Linear(np.array(envs.share_observation_space.shape).prod(), 64)),
+        #     nn.Tanh(),
+        #     layer_init(nn.Linear(64, 64)),
+        #     nn.Tanh(),
+        #     layer_init(nn.Linear(64, 1), std=1.0),
+        # )
+        
+        # self.actor = nn.Sequential(
+        #     layer_init(nn.Linear(np.array(envs.observation_space.shape).prod(), 64)),
+        #     nn.Tanh(),
+        #     layer_init(nn.Linear(64, 64)),
+        #     nn.Tanh(),
+        #     layer_init(nn.Linear(64, envs.action_space.n), std=0.01),
+        # )
 
     def get_value(self, x):
         return self.critic(x)
@@ -187,8 +206,10 @@ class CleanPPOAgent(VectorAgent):
                 self.writer.add_scalar("charts/episodic_return", torch.mean(self.running_rewards[dones]), self.global_step)
                 self.writer.add_scalar("charts/min_episodic_return", torch.min(self.running_rewards[dones]), self.global_step)
                 self.writer.add_scalar("charts/max_episodic_return", torch.max(self.running_rewards[dones]), self.global_step)
+            # print(torch.mean(self.running_rewards[dones]))
             self.running_rewards[dones] = 0.0
             self.new_game[dones] = True
+            # if self.step % 100 == 0:
             
         self.step += 1
         self.global_step += 1

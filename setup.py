@@ -13,6 +13,7 @@ setup(name='madronarlenvs',
           'torch',
           'numpy',
           'tqdm',
-          'stable-baselines3'
+          'stable-baselines3',
+          'hanabi_learning_environment',
       ],
       )
