@@ -102,7 +102,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         obs.bitvec[offset++] = 1;
     }
 
-    int max_size = (10 * ctx.data().ranks - ctx.data().hand_size * ctx.data().players);
+    int max_size = ((4 + (ranks - 2) * 2) * colors - ctx.data().hand_size * ctx.data().players);
     
     for (int i = deck.size; i < max_size; i++) {
         obs.bitvec[offset++] = 0;
@@ -110,11 +110,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 
     // fireworks
     for (int c = 0; c < colors; c++) {
-        for (int i = 0; i < deck.fireworks[c]; i++) {
-            obs.bitvec[offset++] = 1;
-        }
-        for (int i = deck.fireworks[c]; i < ranks; i++) {
-            obs.bitvec[offset++] = 0;
+        for (int i = 0; i < ranks; i++) {
+            obs.bitvec[offset++] = (i + 1 == deck.fireworks[c]);
         }
     }
 
@@ -144,14 +141,15 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     Deck &deck = ctx.getSingleton<Deck>();
     uint32_t colors = ctx.data().colors;
     uint32_t ranks = ctx.data().ranks;
-    int32_t id = ctx.getUnsafe<AgentID>(agent).id;
-
+    
+    int32_t id = 0;
     for (int c = 0; c < colors; c++) {
         for (int r = 0; r < ranks; r++) {
             int cr_num = (r == 0 ? 3 : r == ranks - 1 ? 1 : 2);
             for (int i = 0; i < cr_num; i++) {
                 obs.bitvec[offset++] = (deck.discard_counts[id] > i);
             }
+            id++;
         }
     }
     
@@ -168,13 +166,17 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 
     uint32_t colors = ctx.data().colors;
     uint32_t ranks = ctx.data().ranks;
-    uint32_t num_players = ctx.data().players;
+    int32_t num_players = ctx.data().players;
     uint32_t hand_size = ctx.data().hand_size;
 
     int32_t relative_agent = (lastmove.player == -1 ? -1 : (agent_id - lastmove.player + num_players) % num_players);
     
     for (int i = 0; i < ctx.data().players; i++) {
         obs.bitvec[offset++] = (i == relative_agent);
+    }
+
+    for (int i = 0; i < 4; i++) {
+        obs.bitvec[offset + i] = 0;
     }
 
     switch (lastmove.move) {
@@ -199,6 +201,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         for (int i = 0; i < num_players; i++) {
             obs.bitvec[offset+i] = (i == observer_relative_target);
         }
+    } else {
+        for (int i = 0; i < num_players; i++) {
+            obs.bitvec[offset+i] = 0;
+        }
     }
 
     offset += num_players;
@@ -209,6 +215,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         for (int i = 0; i < colors; i++) {
             obs.bitvec[offset+i] = (i == chosen_color);
         }
+    } else {
+        for (int i = 0; i < colors; i++) {
+            obs.bitvec[offset+i] = 0;
+        }
     }
 
     offset += colors;
@@ -217,6 +227,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         int8_t chosen_rank = lastmove.rank;
         for (int i = 0; i < ranks; i++) {
             obs.bitvec[offset+i] = (i == chosen_rank);
+        }
+    } else {
+        for (int i = 0; i < ranks; i++) {
+            obs.bitvec[offset+i] = 0;
         }
     }
 
@@ -227,6 +241,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         for (int i = 0, mask = 1; i < hand_size; ++i, mask <<= 1) {
             obs.bitvec[offset+i] = ((lastmove.reveal_bitmask & mask) > 0);
         }
+    } else {
+        for (int i = 0, mask = 1; i < hand_size; ++i, mask <<= 1) {
+            obs.bitvec[offset+i] = 0;
+        }
     }
 
     offset += hand_size;
@@ -235,6 +253,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         lastmove.move == MoveType::kDiscard) {
         for (int i = 0; i < hand_size; i++) {
             obs.bitvec[offset+i] = (i == lastmove.card_index);
+        }
+    } else {
+        for (int i = 0; i < hand_size; i++) {
+            obs.bitvec[offset+i] = 0;
         }
     }
 
@@ -245,6 +267,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         for (int i = 0; i < colors * ranks; i++) {
             obs.bitvec[offset+i] = (i == (lastmove.color * ranks + lastmove.rank));
         }
+    } else {
+        for (int i = 0; i < colors * ranks; i++) {
+            obs.bitvec[offset+i] = 0;
+        }
     }
 
     offset += colors * ranks;
@@ -253,6 +279,9 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     if (lastmove.move == MoveType::kPlay) {
         obs.bitvec[offset] = lastmove.scored;
         obs.bitvec[offset+1] = lastmove.information_token;
+    } else {
+        obs.bitvec[offset] = 0;
+        obs.bitvec[offset+1] = 0;
     }
 
     offset += 2;
@@ -620,7 +649,7 @@ static void resetWorld(Engine &ctx)
         lastmove.color = cardval / ranks;
         lastmove.rank = cardval % ranks;
 
-        deck.discard_counts[uid]++;
+        deck.discard_counts[cardval]++;
         deck.information_tokens++;
 
         // draw from deck to replace card in hand
@@ -655,7 +684,7 @@ static void resetWorld(Engine &ctx)
             }
             lastmove.scored = true;
         } else {
-            deck.discard_counts[uid]++;
+            deck.discard_counts[cardval]++;
             deck.life_tokens--;
             lastmove.scored = false;
         }
@@ -798,8 +827,10 @@ static void resetWorld(Engine &ctx)
 
     int8_t old_score = deck.score;
     deck.score = 0;
-    for (int i = 0; i < colors; i++) {
-        deck.score += deck.fireworks[i];
+    if (deck.life_tokens > 0) {
+        for (int i = 0; i < colors; i++) {
+            deck.score += deck.fireworks[i];
+        }
     }
     deck.new_rew = deck.score - old_score;
 
@@ -839,7 +870,7 @@ void Sim::setupTasks(TaskGraph::Builder &builder, const Config &)
     (void)terminate_sys;
     // (void) action_sys;
 
-    printf("Setup done\n");
+    // printf("Setup done\n");
 }
 
 

@@ -256,7 +256,7 @@ def to_torch(a):
 
 class MadronaEnv(VectorMultiAgentEnv):
 
-    def __init__(self, num_envs, gpu_id, sim, debug_compile=True):
+    def __init__(self, num_envs, gpu_id, sim, debug_compile=True, obs_size=None, state_size=None, discrete_action_size=None):
         super().__init__(num_envs, device=torch.device('cuda', gpu_id))
 
         self.sim = sim
@@ -272,6 +272,10 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_rewards = self.sim.reward_tensor().to_torch()
         self.static_worldID = self.sim.world_id_tensor().to_torch().to(torch.long)
         self.static_agentID = self.sim.agent_id_tensor().to_torch().to(torch.long)
+
+        self.obs_size = self.static_observations.shape[2] if obs_size is None else obs_size
+        self.state_size = self.static_agent_states.shape[2] if state_size is None else state_size
+        self.discrete_action_size = self.static_action_masks.shape[2] if discrete_action_size is None else discrete_action_size
         
         self.static_scattered_active_agents = self.static_active_agents.detach().clone()
         self.static_scattered_observations = self.static_observations.detach().clone()
@@ -287,6 +291,9 @@ class MadronaEnv(VectorMultiAgentEnv):
 
         self.infos = [{}] * self.num_envs
 
+    def to_torch(self, a):
+        return a.detach().clone().to(self.device)
+
     def n_step(self, actions):
         self.static_actions.copy_(actions[self.static_agentID, self.static_worldID, :])
 
@@ -299,16 +306,16 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
 
         obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i].to(torch.bool)),
-                                 to_torch(self.static_scattered_observations[i]),
-                                 to_torch(self.static_scattered_agent_states[i]),
-                                 to_torch(self.static_scattered_action_masks[i].to(torch.bool)))
+                                 to_torch(self.static_scattered_observations[i, :, :self.obs_size]),
+                                 to_torch(self.static_scattered_agent_states[i, :, :self.state_size]),
+                                 to_torch(self.static_scattered_action_masks[i, :, :self.discrete_action_size].to(torch.bool)))
                for i in range(2)]
 
         # print(obs[0].active, obs[1].active)
         # print(self.static_active_agents)
         # print(self.static_action_masks)
 
-        return obs, to_torch(self.static_scattered_rewards), to_torch(self.static_dones), self.infos
+        return obs, self.to_torch(self.static_scattered_rewards), self.to_torch(self.static_dones), self.infos
 
     def n_reset(self):
         self.static_scattered_active_agents[self.static_agentID, self.static_worldID] = self.static_active_agents
@@ -318,9 +325,9 @@ class MadronaEnv(VectorMultiAgentEnv):
         self.static_scattered_rewards[self.static_agentID, self.static_worldID] = self.static_rewards
 
         obs = [VectorObservation(to_torch(self.static_scattered_active_agents[i].to(torch.bool)),
-                                 to_torch(self.static_scattered_observations[i]),
-                                 to_torch(self.static_scattered_agent_states[i]),
-                                 to_torch(self.static_scattered_action_masks[i].to(torch.bool)))
+                                 to_torch(self.static_scattered_observations[i, :, :self.obs_size]),
+                                 to_torch(self.static_scattered_agent_states[i, :, :self.state_size]),
+                                 to_torch(self.static_scattered_action_masks[i, :, :self.discrete_action_size].to(torch.bool)))
                for i in range(2)]
         return obs
 
@@ -358,6 +365,9 @@ class SyncVectorEnv(VectorMultiAgentEnv):
             for agent in range(self.n_players):
                 self.static_rewards[agent, i] = rewsi[agent]
 
+            for j in range(self.n_players):
+                self.static_active_agents[j, i] = False
+                
             for j in range(len(agentsi)):
                 agent = agentsi[j]
                 self.static_active_agents[agent, i] = True
@@ -384,6 +394,9 @@ class SyncVectorEnv(VectorMultiAgentEnv):
                 self.static_observations = torch.zeros((self.n_players, self.num_envs) + obsi[0][0].shape, device=self.device)
                 self.static_agent_states = torch.zeros((self.n_players, self.num_envs) + obsi[0][1].shape, device=self.device)
                 self.static_action_masks = torch.ones((self.n_players, self.num_envs) + obsi[0][2].shape, device=self.device, dtype=torch.bool)
+
+            for j in range(self.n_players):
+                self.static_active_agents[j, i] = False
 
             for j in range(len(agentsi)):
                 agent = agentsi[j]

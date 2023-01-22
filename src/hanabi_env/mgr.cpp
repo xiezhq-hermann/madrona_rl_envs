@@ -196,13 +196,13 @@ MADRONA_EXPORT Tensor Manager::actionTensor() const
 MADRONA_EXPORT Tensor Manager::observationTensor() const
 {
     return impl_->exportTensor(3, Tensor::ElementType::Int8,
-        {N_PLAYERS, impl_->cfg.numWorlds, OBS_SIZE});
+                               {N_PLAYERS, impl_->cfg.numWorlds, sizeof(Observation)});
 }
 
 MADRONA_EXPORT Tensor Manager::agentStateTensor() const
 {
     return impl_->exportTensor(8, Tensor::ElementType::Int8,
-        {N_PLAYERS, impl_->cfg.numWorlds, STATE_SIZE});
+                               {N_PLAYERS, impl_->cfg.numWorlds, sizeof(State)});
 }
 
 

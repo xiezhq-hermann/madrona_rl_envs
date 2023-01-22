@@ -33,6 +33,9 @@ def parse_args():
     parser.add_argument("--madrona", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="if toggled, madrona will be enabled by default")
 
+    parser.add_argument("--use-cpu", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
+        help="if toggled, use cpu version of madrona")
+
     # Algorithm specific arguments
     parser.add_argument("--total-timesteps", type=int, default=500000,
         help="total timesteps of the experiments")
@@ -92,7 +95,7 @@ run_name = f"Hanabi_{args.hanabi_type}_Train__{args.seed}__{int(time.time())}__{
 print("Run saved to:", run_name)
 
 if args.madrona:
-    env = HanabiMadrona(args.num_envs, 0, False, han_conf)
+    env = HanabiMadrona(args.num_envs, 0, False, han_conf, args.use_cpu)
 else:
     env = SyncVectorEnv(
             [make_env(args.seed + i, i) for i in range(args.num_envs)]
