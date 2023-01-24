@@ -2,6 +2,17 @@ set(SIMULATOR_SRCS
   sim.hpp sim.cpp
 )
 
+add_library(cartpole_example_cpu_impl STATIC
+    ${SIMULATOR_SRCS}
+)
+
+target_link_libraries(cartpole_example_cpu_impl 
+    PUBLIC
+        madrona_mw_core
+    PRIVATE
+        madrona_common
+)
+
 madrona_build_compile_defns(
   OUT_TARGET
   cartpole_example_gpu_srcs
@@ -23,6 +34,8 @@ target_link_libraries(cartpole_example_mgr PRIVATE
     madrona_common
     madrona_importer
     cartpole_example_gpu_srcs
+    cartpole_example_cpu_impl
+    madrona_mw_cpu
 )
 
 target_compile_definitions(cartpole_example_mgr PRIVATE

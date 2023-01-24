@@ -80,7 +80,7 @@ class CartpoleMadronaNumpy(VectorEnv):
 
 class CartpoleMadronaTorch(VectorEnv):
 
-    def __init__(self, num_envs, gpu_id, debug_compile=True):
+    def __init__(self, num_envs, gpu_id, debug_compile=True, use_cpu=False):
         high = np.array(
             [
                 X_THRESHOLD * 2,
@@ -96,6 +96,7 @@ class CartpoleMadronaTorch(VectorEnv):
         super().__init__(num_envs, observation_space, action_space)
 
         self.sim = cartpole_python.CartpoleSimulator(
+            exec_mode = cartpole_python.ExecMode.CPU if use_cpu else cartpole_python.ExecMode.CUDA,
             gpu_id = gpu_id,
             num_worlds = num_envs,
             debug_compile = debug_compile,

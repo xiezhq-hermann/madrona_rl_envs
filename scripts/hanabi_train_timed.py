@@ -157,8 +157,10 @@ partner = CleanPPOAgent(
 # partner = RandomVectorAgent(lambda: torch.randint_like(env.static_actions[0], high=4))
 
 env.add_partner_agent(partner)
+
+start_time = time.time()
 obs = env.reset()
-for iter in tqdm(range(num_updates * args.num_steps), desc="Training Agent"):
+while time.time() - start_time < 30 * 60:
     action = ego.get_action(obs, record=True)
 
     obs, rewards, dones, _ = env.step(action)

@@ -17,17 +17,24 @@ namespace nb = nanobind;
 namespace Cartpole {
 
 NB_MODULE(madrona_cartpole_example_python, m) {
+    nb::enum_<Manager::ExecMode>(m, "ExecMode")
+        .value("CPU", Manager::ExecMode::CPU)
+        .value("CUDA", Manager::ExecMode::CUDA)
+        .export_values();
+    
     nb::class_<Manager> (m, "CartpoleSimulator")
         .def("__init__", [](Manager *self,
+                            Manager::ExecMode exec_mode,
                             int64_t gpu_id,
                             int64_t num_worlds,
                             bool debug_compile) {
             new (self) Manager(Manager::Config {
+                .execMode = exec_mode,
                 .gpuID = (int)gpu_id,
                 .numWorlds = (uint32_t)num_worlds,
                 .debugCompile = debug_compile,
             });
-        }, nb::arg("gpu_id"), nb::arg("num_worlds"),
+        }, nb::arg("exec_mode") , nb::arg("gpu_id"), nb::arg("num_worlds"),
            nb::arg("debug_compile") = true)
         .def("step", &Manager::step)
         .def("reset_tensor", &Manager::resetTensor)

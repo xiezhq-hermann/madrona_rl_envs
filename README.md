@@ -73,6 +73,15 @@ For hanabi:
 cd scripts
 
 # learning with madrona
-python hanabi_train.py --num-envs 1000 --num-steps 100 --total-timesteps 100000000 --learning-rate 7e-4 --update-epochs 1 --num-minibatches 1 --madrona True --ent-coef 0.015 --hanabi-type full
+MADRONA_MWGPU_KERNEL_CACHE=/tmp/hancache python hanabi_train.py --num-envs 1000 --num-steps 100 --num-updates 1000 --learning-rate 7e-4 --update-epochs 15 --num-minibatches 1 --madrona True --ent-coef 0.015 --anneal-lr False --hanabi-type full
+```
+
+Hanabi training ablations:
+
+```
+cd scripts
+
+# Change list on line 5 to have the desired number of environments; each run will last 30 mins
+./hanabi_env_train.sh
 ```
 

@@ -191,6 +191,9 @@ class CleanPPOAgent(VectorAgent):
         self.running_rewards = torch.zeros(self.num_envs).to(device)
         self.last_active = torch.zeros(self.num_envs, dtype=torch.long).to(device)
 
+        self.mean_return_sum = 0
+        self.num_returns = 0
+
     def update(self, rewards: torch.Tensor, dones: torch.Tensor) -> None:
         dones = dones.to(dtype=torch.bool)
         # multi-agent decisions:
@@ -203,13 +206,13 @@ class CleanPPOAgent(VectorAgent):
 
         if torch.any(dones):
             if self.verbose:
-                self.writer.add_scalar("charts/episodic_return", torch.mean(self.running_rewards[dones]), self.global_step)
+                # self.writer.add_scalar("charts/episodic_return", torch.mean(self.running_rewards[dones]), self.global_step)
                 self.writer.add_scalar("charts/min_episodic_return", torch.min(self.running_rewards[dones]), self.global_step)
                 self.writer.add_scalar("charts/max_episodic_return", torch.max(self.running_rewards[dones]), self.global_step)
-            # print(torch.mean(self.running_rewards[dones]))
+            self.mean_return_sum += torch.mean(self.running_rewards[dones])
+            self.num_returns += 1
             self.running_rewards[dones] = 0.0
             self.new_game[dones] = True
-            # if self.step % 100 == 0:
             
         self.step += 1
         self.global_step += 1
@@ -222,25 +225,6 @@ class CleanPPOAgent(VectorAgent):
                 frac = 1.0 - (self.updates - 1.0) / self.num_updates
                 lrnow = frac * self.lr
                 self.optimizer.param_groups[0]["lr"] = lrnow
-
-            # print("values:", self.values)
-
-            # print("rewards:", self.rewards)
-            # bootstrap value if not done
-            # with torch.no_grad():
-            #     next_value = self.agent.get_value(obs.state.float()).reshape(1, -1)
-            #     advantages = torch.zeros_like(self.rewards).to(self.device)
-            #     lastgaelam = 0
-            #     for t in reversed(range(self.num_steps)):
-            #         if t == self.num_steps - 1:
-            #             nextnonterminal = 1.0 - self.next_done.to(torch.float)
-            #             nextvalues = next_value
-            #         else:
-            #             nextnonterminal = 1.0 - self.dones[t + 1]
-            #             nextvalues = self.values[t + 1]
-            #         delta = self.rewards[t] + self.gamma * nextvalues * nextnonterminal - self.values[t]
-            #         advantages[t] = lastgaelam = delta + self.gamma * self.gae_lambda * nextnonterminal * lastgaelam
-            #     returns = advantages + self.values
             
             with torch.no_grad():
                 next_value = self.agent.get_value(obs.state.float()).reshape(-1)
@@ -346,6 +330,11 @@ class CleanPPOAgent(VectorAgent):
 
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             if self.verbose:
+                if self.num_returns != 0:
+                    self.writer.add_scalar("charts/episodic_return", self.mean_return_sum/self.num_returns, self.global_step)
+                    self.mean_return_sum = 0
+                    self.num_returns = 0
+                
                 self.writer.add_scalar("charts/learning_rate", self.optimizer.param_groups[0]["lr"], self.global_step)
                 self.writer.add_scalar("losses/value_loss", v_loss.item(), self.global_step)
                 self.writer.add_scalar("losses/policy_loss", pg_loss.item(), self.global_step)

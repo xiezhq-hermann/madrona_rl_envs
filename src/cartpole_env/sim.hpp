@@ -10,6 +10,8 @@
 
 namespace Cartpole {
 
+    struct RendererInitStub {};
+
     // 3D Position & Quaternion Rotation
     // These classes are defined in madrona/components.hpp
     using madrona::base::Position;
@@ -37,14 +39,15 @@ namespace Cartpole {
     };
 
     struct Agent : public madrona::Archetype<Action, State, Reward> {};
-    
+
+    struct Config {};
 
     struct Sim : public madrona::WorldBase {
-        static void registerTypes(madrona::ECSRegistry &registry);
+        static void registerTypes(madrona::ECSRegistry &registry, const Config &cfg);
 
-        static void setupTasks(madrona::TaskGraph::Builder &builder);
+        static void setupTasks(madrona::TaskGraph::Builder &builder, const Config &cfg);
 
-        Sim(Engine &ctx, const WorldInit &init);
+        Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &);
 
         EpisodeManager *episodeMgr;
         RNG rng;

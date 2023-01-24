@@ -22,7 +22,7 @@ using namespace madrona::math;
 namespace Cartpole {
 
     
-void Sim::registerTypes(ECSRegistry &registry)
+    void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
 {
     base::registerTypes(registry);
 
@@ -32,7 +32,7 @@ void Sim::registerTypes(ECSRegistry &registry)
     registry.registerComponent<State>();
     registry.registerComponent<Reward>();
 
-    registry.registerArchetype<Agent>();
+    registry.registerFixedSizeArchetype<Agent>(1);
 
     // Export tensors for pytorch
     registry.exportSingleton<WorldReset>(0);
@@ -115,7 +115,7 @@ inline void resetSystem(Engine &ctx, WorldReset &reset)
 
     
 
-void Sim::setupTasks(TaskGraph::Builder &builder)
+    void Sim::setupTasks(TaskGraph::Builder &builder, const Config &)
 {
     // auto reset_sys =
     //     builder.addToGraph<ParallelForNode<Engine, resetSystem, WorldReset>>({});
@@ -138,7 +138,7 @@ void Sim::setupTasks(TaskGraph::Builder &builder)
 }
 
 
-Sim::Sim(Engine &ctx, const WorldInit &init)
+    Sim::Sim(Engine &ctx, const WorldInit &init, const RendererInitStub &)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr)
 {
@@ -160,6 +160,6 @@ Sim::Sim(Engine &ctx, const WorldInit &init)
     ctx.getSingleton<WorldReset>().resetNow = false;
 }
 
-MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, WorldInit);
+    MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Config, WorldInit, RendererInitStub);
 
 }
